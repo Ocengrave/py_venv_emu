@@ -9,10 +9,9 @@ from typing import NoReturn
 venv_name = 'venv'
 
 # This is the name of script to create a bash script
-script_name = "script_venv_activate.sh"
+
 
 # This is default text prefix for install default venv
-command_prefix = f"Is this ok? [y/N]:"
 
 ascii_text_terminal = """\t---INIT TERMINAL IN ENV---\n"""
 
@@ -49,6 +48,10 @@ class User:
         valid_script_os = ('linux', 'win32')
         return True if self.os_platform in valid_script_os else False
 
+    def call_create_venv(self, param=True):
+        """Just call __create_venv fun with bash param"""
+        self.__create_venv(cmd=input(f"Is this ok? [y/N]:"), create_bash=param)
+
     @staticmethod
     def run_subprocces(cmd: list) -> None | int:
         if isinstance(cmd, list):
@@ -74,7 +77,7 @@ class User:
             print(color_text("\nSuccess!", 'green') + ": your venv folder was found!")
             print(color_text(f'\n{ascii_text_terminal}', 'green'))
             os.environ['PATH'] = self.user_env.setup_venv_path()  # SetUp OS.ENV ['PATH'] in current created venv dir
-            script = self.user_env.init_venv_from_bash_script(script_name, self.os_platform)
+            script = self.user_env.init_venv_from_bash_script(self.os_platform)
             if script:
                 return True
         else:
@@ -104,7 +107,7 @@ class User:
             case _:
                 print(color_text('Warning!', 'red'), ": Invalid Command. Try again or exit from script!")
                 # Try to call method with new command
-                self.__create_venv(input(f"{command_prefix}"), create_bash=True)
+                self.call_create_venv()
 
     def init_venv(self) -> NoReturn:
         """Init Python virtual env in current script folder"""
@@ -117,13 +120,14 @@ class User:
         )
         if not self.run_emu(try_start=False):
             print(''.join(installation_help_text))
-            self.__create_venv(cmd=input(command_prefix), create_bash=True)
+            self.call_create_venv()
 
 
 class Venv:
 
     def __init__(self):
         self.path = os.environ["PATH"]
+        self.script_name = "script_venv_activate.sh"
 
     @staticmethod
     def find_venv_files(user_path):
@@ -160,23 +164,23 @@ class Venv:
         self.path = os.path.dirname(venv_name + "/bin/activate") + os.pathsep + os.environ['PATH']
         return self.path
 
-    def init_venv_from_bash_script(self, bash_script_name, os_platform: str) -> int:
+    def init_venv_from_bash_script(self, os_platform: str) -> int:
         """
         :return: if return code == 0 the user OS doesn't support;
         """
         match os_platform:
             case "linux":
                 try:
-                    subprocess.call([f'./{bash_script_name}'])
+                    subprocess.call([f'./{self.script_name}'])
                     return 1
                 except FileNotFoundError:
-                    with open(f'{bash_script_name}', 'w') as file:
+                    with open(f'{self.script_name}', 'w') as file:
                         file.write(f'#!/bin/bash\n'
                                    f'source {venv_name}/bin/activate\n'
-                                   f'rm -f ./{bash_script_name}\n'
+                                   f'rm -f ./{self.script_name}\n'
                                    f'bash')
-                    os.system(f"chmod u+x {bash_script_name}")
-                    return self.init_venv_from_bash_script(bash_script_name, os_platform)
+                    os.system(f"chmod u+x {self.script_name}")
+                    return self.init_venv_from_bash_script(os_platform)
             case "win32":
                 os.system(f'cmd /k {venv_name}\\scripts\\activate.bat')
                 return 1
