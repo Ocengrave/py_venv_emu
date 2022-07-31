@@ -37,10 +37,6 @@ class User:
     def __init__(self) -> None:
         self.os_platform = sys.platform
         self.user_env = Venv()
-        self.__command_list = {
-            'accept': ('yes', 'y', ''),
-            'decline': ('no', 'n'),
-        }
         self.print_user_info()
 
     def print_user_info(self):
@@ -164,6 +160,7 @@ class Venv:
             case "linux":
                 try:
                     subprocess.call([f'./{bash_script_name}'])
+                    return 1
                 except FileNotFoundError:
                     with open(f'{bash_script_name}', 'w') as file:
                         file.write(f'#!/bin/bash\n'
@@ -172,7 +169,6 @@ class Venv:
                                    f'bash')
                     os.system(f"chmod u+x {bash_script_name}")
                     self.init_venv_from_bash_script(bash_script_name, os_platform)
-                    return 1
             case "win32":
                 os.system(f'cmd /k {venv_name}\\scripts\\activate.bat')
                 return 1
