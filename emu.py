@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-
 import os
 import subprocess
 import sys
+import time
 from typing import NoReturn
 
 # This is the name of the default virtual environment
@@ -56,13 +56,14 @@ class User:
                           + ": unable to validate the command.\n" \
                             "Try looking at the command in the process call"
             try:
-                process = subprocess.run(cmd, stdout=subprocess.PIPE, encoding='utf-8')
-                return print(error_print) if process.returncode != 0 else process.returncode
+                process = subprocess.run(cmd, stdout=subprocess.PIPE, encoding='utf-8', stderr=subprocess.PIPE)
+                print(process)
+                return print(error_print) if process.returncode != 0 else True
             except PermissionError:
                 return print(error_print)
         print(color_text('Warning!', 'red'), ': wrong command!')
 
-    def run_emu(self, try_start=True) -> bool:
+    def run_emu(self, try_start=False) -> bool:
         """
         Setup os env and try runs bash script with venv run command
 
@@ -84,12 +85,19 @@ class User:
     def __create_venv(self, cmd: str, create_bash=False):
         """Read user command, if input call accept then try to install virtual env
            else exit from program"""
+
+        start_time = time.time()  # DEBUG
+
         command = cmd.lower().strip()
         match command:
             case 'y' | 'yes' | '':
-                process = self.run_subprocces(['python3', '-m', 'venv', f'{venv_name}', ])
-                if process == 0:
+                process_result = self.run_subprocces(['python3', '-m', 'venv', f'{venv_name}', ])
+                # process = subprocess.Popen(['python3', '-m', 'venv', f'{venv_name}'],
+                #                            stdout=subprocess.PIPE,
+                #                            stderr=subprocess.PIPE)
+                if process_result:
                     self.user_env.print_output_data()  # optional method
+                    print("CREATE TIME: ", time.time() - start_time)  # DEBUG
                     self.run_emu() if create_bash else exit("Terminal emulation wasn't enabled")
             case 'n' | 'no':
                 exit("Exit by user command.")
@@ -168,7 +176,7 @@ class Venv:
                                    f'rm -f ./{bash_script_name}\n'
                                    f'bash')
                     os.system(f"chmod u+x {bash_script_name}")
-                    self.init_venv_from_bash_script(bash_script_name, os_platform)
+                    return self.init_venv_from_bash_script(bash_script_name, os_platform)
             case "win32":
                 os.system(f'cmd /k {venv_name}\\scripts\\activate.bat')
                 return 1
